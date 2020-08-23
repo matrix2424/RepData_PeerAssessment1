@@ -1,25 +1,86 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+
+# Reading the data
 
 
-## Loading and preprocessing the data
+```{r}
+data= read.csv('activity.csv', stringsAsFactors = F)
+
+data[,2]= as.Date(data[,2])
+
+head(data)
+```
+
+# Steps taken per day
+
+```{r}
+stpd= aggregate(steps~date, data = data, FUN = sum)
+hist(stpd$steps, main='Total steps taken per day')
+mean(stpd$steps)
+median(stpd$steps)
+
+```
+
+# Daily Activity Pattern
+```{r}
+series= aggregate(steps~interval, data= data, FUN = mean)
+plot(series, type= 'l')
+series[which.max(series$steps),]
+
+```
 
 
+# Imputing NAs using mean for 5 minute interval
 
-## What is mean total number of steps taken per day?
+```{r}
+
+table(is.na(data[,1]))
+
+copy = data.frame(data)
+
+for (i in 1:length(copy[,1])){
+  
+  if (is.na(copy[i,1]) == TRUE){
+     
+    k= which(series$interval==copy[i,3])
+    copy[i,1]= series[k,2]
+  }
+}
+
+head(copy)
 
 
+steps2= aggregate(steps~date, data = copy, FUN = sum)
+hist(steps2$steps, main='Total steps taken per day')
+mean(steps2$steps)
+median(steps2$steps)
 
-## What is the average daily activity pattern?
+```
+### The mean is the same as before since imputation was done using the mean itself. The median now is equal to the mean so the dataset has no skewness after imputation.
+
+### Atfer imputation, there is data for each day and the number of steps taken each day is equal to the mean if that day had all NAs earlier.
 
 
+# Panel Plot
 
-## Imputing missing values
+```{r}
+wd = function(x){
+  
+  if (x=='Sunday' | x=='Saturday'){
+    wd= 'Weekend'
+  }
+  else{
+    wd='Weekday'
+  }
+  wd
+}
+
+copy$day = as.factor(mapply(wd, weekdays(copy[,2])))
+head(copy)
+
+library(ggplot2)
+stpw= aggregate(steps~interval+day, data= copy, FUN = mean)
+
+ggplot(stpw, aes(interval,steps))+facet_wrap(~day, nrow=2, ncol = 1)+geom_line(color='red', size=1)
 
 
-
-## Are there differences in activity patterns between weekdays and weekends?
+```
